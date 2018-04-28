@@ -8,7 +8,7 @@
 
 library(nlme) # for gls()
 library(lme4) # for lmer()
-set.seed(06041987)
+set.seed(06041989)
 
 
 # Generating Random Variables ---------------------------------------------
@@ -82,7 +82,7 @@ X <- model.matrix(~ 0 + grp)
 # cell means coding (only time I will use this)
 
 # Random Reponses
-e <- rnorm(nrow(X), sd = 1.5) # mse = 2.25
+e <- rnorm(n, sd = 1.5) # mse = 2.25
 mu <- c(1,1,2) # parameters
 
 y <- X %*% mu + e
