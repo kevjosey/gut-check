@@ -210,9 +210,9 @@ anova(cs.fit)
 L <- rbind(c(0,0,0,0,1,0),
            c(0,0,0,0,0,1)) # contrast matrix
 
-nu.e = n - 3 # residual degrees of freedom
-nu.1 = 2 # numerator degrees of freedom
-nu.2 = nu.e - 1 + 1 # denominator defrees of freedom
+nu.e <- n - 3 # residual degrees of freedom
+nu.1 <- 2 # numerator degrees of freedom
+nu.2 <- nu.e - 1 + 1 # denominator defrees of freedom
 
 beta.hat <- coef(cs.fit) # estimate
 theta.hat <- L %*% beta.hat # contrast estimates
@@ -222,7 +222,7 @@ theta.0 <- as.matrix( c(0, 0) ) # null hypothesis
 V.tmp <- matrix(coef(cs.fit$modelStruct$corStruct, unconstrained = FALSE), nrow = p, ncol = p) 
 diag(V.tmp) <- 1
 V.hat <- V.tmp*cs.fit$sigma^2 # within subject variance estimate
-Sig.hat = kronecker(diag(1, nrow = n, ncol = n), V.hat) # expand V
+Sig.hat <- kronecker(diag(1, nrow = n, ncol = n), V.hat) # expand V
 
 wald.var <- solve(L %*% solve(t(X) %*% solve(Sig.hat) %*% X) %*% t(L)) # variance of theta.hat
 wald.stat <- t(theta.hat - theta.0) %*% wald.var %*% (theta.hat - theta.0) / nu.1 # wald statistic
