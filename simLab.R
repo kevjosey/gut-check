@@ -88,25 +88,25 @@ mu <- c(1,1,2) # parameters
 y <- X %*% mu + e
 
 # Fitting the Model
-one.way.fit <- lm(y ~ 0 + grp) # note that we remove the intercept
-summary(one.way.fit)
+one_way_fit <- lm(y ~ 0 + grp) # note that we remove the intercept
+summary(one_way_fit)
 
 # ANOVA by Hand
 C <- rbind(c(1, -1, 0),
            c(1, 0, -1)) # contrast matrix
-mu.hat <- solve(t(X) %*% X) %*% t(X) %*% y # OLS estimator
-rmse <- t(y - X %*% mu.hat) %*% (y - X %*% mu.hat) / (n - 3) # residual mse
+mu_hat <- solve(t(X) %*% X) %*% t(X) %*% y # OLS estimator
+rmse <- t(y - X %*% mu_hat) %*% (y - X %*% mu_hat) / (n - 3) # residual mse
 
 I <- diag(1, nrow = n, ncol = n)
-proj.mat <- X %*% solve(t(X) %*% X) %*% t(X) # projection matrix
-rmse.alt <- t(y) %*% (I - proj.mat) %*% y / (n - 3) # alternative rmse
+proj_mat <- X %*% solve(t(X) %*% X) %*% t(X) # projection matrix
+rmse_alt <- t(y) %*% (I - proj_mat) %*% y / (n - 3) # alternative rmse
 
-mu.0 <- c(1,1,1) # null hypothesis
-mu.var <- solve(t(X) %*% X) * as.vector(rmse) # variance of mu.hat
+mu_0 <- c(1,1,1) # null hypothesis
+mu_var <- solve(t(X) %*% X) * as.vector(rmse) # variance of mu.hat
 
-wald.stat <- t(C %*% (mu.hat - mu.0)) %*% solve(C %*% mu.var %*% t(C)) %*% (C %*% (mu.hat - mu.0)) / 2 # Wald statistic
+wald_stat <- t(C %*% (mu_hat - mu_0)) %*% solve(C %*% mu_var %*% t(C)) %*% (C %*% (mu_hat - mu_0)) / 2 # Wald statistic
 
-pval <- pf(wald.stat, 2, 57, lower.tail = FALSE) # p-value
+pval <- pf(wald_stat, 2, 57, lower.tail = FALSE) # p-value
 
 anova(lm(y ~ grp)) # check
 
@@ -133,9 +133,9 @@ beta <- c(10, 1, -1, 2, 0.5, -0.5) # c(int, factor1.2, factor1.3, factor2.2, fac
 y <- X %*% beta + e
 
 # Fitting the Model
-two.way.fit <- lm(y ~ a1*a2)
-anova(two.way.fit)
-summary(two.way.fit)
+two_way_fit <- lm(y ~ a1*a2)
+anova(two_way_fit)
+summary(two_way_fit)
 
 ## ANCOVA
 
@@ -154,8 +154,8 @@ beta <- c(10, 0.8, 0.1)
 y <- X %*% beta + e
 
 # Fitting the Model
-ancova.fit <- lm(y ~ grp + cv)
-summary(ancova.fit)
+ancova_fit <- lm(y ~ grp + cv)
+summary(ancova_fit)
 
 
 # Repeated Measures ANOVA ----------------------------------------------
@@ -201,33 +201,32 @@ e <- as.vector(t(E)) # vectorize by rows of the error matrix
 y <- X %*% beta + e
 
 # Fit Mixed Model
-cs.fit <- gls(y ~ grp*time, correlation = corCompSymm(form = ~1|id)) # generalized least squares (nlme)
-summary(cs.fit) # ICC = 1/(1+2) = 0.3333 = rho
-anova(cs.fit)
+cs_fit <- gls(y ~ grp*time, correlation = corCompSymm(form = ~1|id)) # generalized least squares (nlme)
+summary(cs_fit) # ICC = 1/(1+2) = 0.3333 = rho
+anova(cs_fit)
 
 # Difference in Differences Hypothesis by Hand ( test interactions )
 
 L <- rbind(c(0,0,0,0,1,0),
            c(0,0,0,0,0,1)) # contrast matrix
 
-nu.e <- n - 3 # residual degrees of freedom
-nu.1 <- 2 # numerator degrees of freedom
-nu.2 <- nu.e - 1 + 1 # denominator defrees of freedom
+nu_1 <- 2 # numerator degrees of freedom
+nu_2 <- n - 3 # residual degrees of freedom
 
-beta.hat <- coef(cs.fit) # estimate
-theta.hat <- L %*% beta.hat # contrast estimates
-theta.0 <- as.matrix( c(0, 0) ) # null hypothesis
+beta_hat <- coef(cs_fit) # estimate
+theta_hat <- L %*% beta_hat # contrast estimates
+theta_0 <- as.matrix( c(0, 0) ) # null hypothesis
 
 # if you can find a better way of extract the covariance estimate, please let me know
-V.tmp <- matrix(coef(cs.fit$modelStruct$corStruct, unconstrained = FALSE), nrow = p, ncol = p) 
-diag(V.tmp) <- 1
-V.hat <- V.tmp*cs.fit$sigma^2 # within subject variance estimate
-Sig.hat <- kronecker(diag(1, nrow = n, ncol = n), V.hat) # expand V
+V_tmp <- matrix(coef(cs_fit$modelStruct$corStruct, unconstrained = FALSE), nrow = p, ncol = p) 
+diag(V_tmp) <- 1
+V_hat <- V_tmp*cs_fit$sigma^2 # within subject variance estimate
+Sig_hat <- kronecker(diag(1, nrow = n, ncol = n), V_hat) # expand V
 
-wald.var <- solve(L %*% solve(t(X) %*% solve(Sig.hat) %*% X) %*% t(L)) # variance of theta.hat
-wald.stat <- t(theta.hat - theta.0) %*% wald.var %*% (theta.hat - theta.0) / nu.1 # wald statistic
+wald_var <- solve(L %*% solve(t(X) %*% solve(Sig_hat) %*% X) %*% t(L)) # variance of theta.hat
+wald_stat <- t(theta_hat - theta_0) %*% wald_var %*% (theta_hat - theta_0) / nu_1 # wald statistic
 
-pval <- pf(wald.stat, nu.1, nu.2, lower.tail = FALSE) # p-value
+pval <- pf(wald_stat, nu_1, nu_2, lower.tail = FALSE) # p-value
 
 
 # Linear Mixed Effects Model ----------------------------------------------
@@ -244,8 +243,8 @@ e <- rnorm(n*p, 0, sqrt(2))
 y_n <- X %*% beta + d + e # Z_{ij} = 1 for all i,j
 
 # Fit Model
-rand.int.fit <- lmer(y_n ~ grp*time + (1|id)) # using lme4 package
-summary(rand.int.fit) # Same distribution as cs.fit response variable
+rand_int_fit <- lmer(y_n ~ grp*time + (1|id)) # using lme4 package
+summary(rand_int_fit) # Same distribution as cs.fit response variable
 
 
 # Power and Sample Size ---------------------------------------------------
@@ -280,7 +279,7 @@ out <- vector(mode = "numeric", length = length(scen)) # initialize output
 for(j in 1:length(scen)) { # nested for loops are bad, see if you can't improve this with the apply class of functions
   
   beta <- c(1, 0, scen[j]) # concentrated effects
-  n.reject <- 0 # initialize rejection count
+  n_reject <- 0 # initialize rejection count
 
   for (i in 1:iter) {
   
@@ -290,12 +289,12 @@ for(j in 1:length(scen)) { # nested for loops are bad, see if you can't improve 
     fit <- lm(y ~ grp) # fitted model
     a <- anova(fit)
   
-    n.reject <- n.reject + ( a$`F value`[1] > qf(0.95, 2, 57) ) 
+    n_reject <- n_reject + ( a$`F value`[1] > qf(0.95, 2, 57) ) 
     # ndf = rank(C) = 2, ddf = N - rank(X) = 60 - 3 = 57
   
   }
   
-  out[j] <- n.reject/iter
+  out[j] <- n_reject/iter
     
 }
 
@@ -318,17 +317,17 @@ rm(list = ls())
 
 iter <- 10000 # no. of iterations
 sd <- 3 # mse = 9
-try.n <- seq(5, 50, by = 5) # test different sample sizes
+try_n <- seq(5, 50, by = 5) # test different sample sizes
 beta <- c(1, 0, 2) # note this is our "effect size"
 
-out <- vector(mode = "numeric", length = length(try.n)) # initialize output
+out <- vector(mode = "numeric", length = length(try_n)) # initialize output
 
-for(j in 1:length(try.n)) { # nested for loops are bad, see if you can't improve this with the apply class of functions
+for(j in 1:length(try_n)) { # nested for loops are bad, see if you can't improve this with the apply class of functions
   
-  n <- try.n[j]
+  n <- try_n[j]
   grp <- factor( rep(1:3, each = n) )
   X <- model.matrix(~ grp) # Reference Cell Coding
-  n.reject <- 0 # initialize rejection count
+  n_reject <- 0 # initialize rejection count
   
   for (i in 1:iter) {
     
@@ -338,13 +337,13 @@ for(j in 1:length(try.n)) { # nested for loops are bad, see if you can't improve
     fit <- lm(y ~ grp) # fitted model
     a <- anova(fit)
     
-    n.reject <- n.reject + ( a$`F value`[1] > qf(0.95, 2, 57) ) 
+    n_reject <- n_reject + ( a$`F value`[1] > qf(0.95, 2, 57) ) 
     # ndf = rank(C) = 2, ddf = N - rank(X) = 60 - 3 = 57
     
   }
   
-  out[j] <- n.reject/iter
+  out[j] <- n_reject/iter
   
 }
 
-samp.size <- cbind(try.n, out)
+samp_size <- cbind(try_n, out)
