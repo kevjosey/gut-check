@@ -7,6 +7,7 @@
 # Dependencies ------------------------------------------------------------
 
 library(nlme) # needed for gls()
+set.seed(06261992) # for replication purposes
 
 
 # Functions for generating different covariance patterns ------------------

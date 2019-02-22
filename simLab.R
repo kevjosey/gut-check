@@ -6,8 +6,7 @@
 # Dependencies ------------------------------------------------------------
 
 library(nlme) # for gls()
-library(lme4) # for lmer()
-set.seed(06041989)
+set.seed(06041989) # for replication purposes
 
 
 # Generating Random Variables ---------------------------------------------
