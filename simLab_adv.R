@@ -4,11 +4,14 @@
 ## By: Kevin Josey                                ##
 ####################################################
 
+# Dependencies ------------------------------------------------------------
+
 library(nlme) # needed for gls()
 
-## Below are functions for generating the different covariance patterns
 
-# generate exchangeable covariance pattern
+# Functions for generating different covariance patterns ------------------
+
+# Exchangeable covariance pattern
 xch <- function(sig2, rho, p){
   
   if(length(sig2) != 1)
@@ -25,7 +28,7 @@ xch <- function(sig2, rho, p){
   
 }
 
-# generate AR(1) covariance pattern
+# AR(1) covariance pattern
 ar1 <- function(sig2, phi, p){
   
   if(length(sig2) != 1)
@@ -41,7 +44,7 @@ ar1 <- function(sig2, phi, p){
   
 }
 
-# generate unstructured covariance
+# Unstructured covariance pattern
 un <- function(sig2, R){
   
   if (!isSymmetric(R))
@@ -72,7 +75,8 @@ un <- function(sig2, R){
   
 }
 
-## Covariance pattern models
+
+# Simulate covariance pattern models --------------------------------------
 
 # data dimensions
 n1 <- 100 # sample size for group 1
@@ -92,7 +96,7 @@ V_un <- un(sig2 = c(1,2,3,4), R = R) # unstructured-ish
 
 # design matrix
 grp <- factor( rep(1:2, times = c(n1*p,n2*p)) ) # identify treatment assignment
-time <- rep(0:(p-1), times = n) # we can also factor this variable so that there is a different beta for each time point
+time <- rep(0:(p-1), times = n) # we can also factor this variable
 X <- model.matrix(~ grp*time) # reference cell coding
 id <- rep(1:n, each = p) # id indexing clusters
 
@@ -128,24 +132,28 @@ y_un <- c( X %*% beta + e_un )
 # fit mixed models
 xch_fit <- gls(y_xch ~ grp*time, correlation = corCompSymm(form = ~1|id)) # exchangeable model
 ar1_fit <- gls(y_ar1 ~ grp*time, correlation = corAR1(form = ~1|id)) # AR(1) model
-un_fit <- gls(y_un ~ grp*time, correlation = corSymm(form = ~1|id), weights = varIdent(form = ~1|time)) # unstructured model
+un_fit <- gls(y_un ~ grp*time, correlation = corSymm(form = ~1|id),
+              weights = varIdent(form = ~1|time)) # unstructured model
 
-## Feasible Generalized Least Squares (unstructured by hand)
+
+# Feasible Generalized Least Squares (without nlme) -----------------------
 
 y_un <- y_un[order(id, time)] # make sure y is ordered appropriately
 
 # status variables
-tol <- 1e-10 # tolerance for convergence
+tol <- 1e-3 # tolerance for convergence
 max_iter <- 100 # maximum number of iterations allowed
 iter <- 0 # initialize iteration count
 converged <- FALSE # convergence indicator
 
 b_hat <- c( solve(t(X) %*% X) %*% t(X) %*% y_un ) # initialize beta with ordinary least squares
+Sigma_hat <- diag(1, nrow = p, ncol = p)
 
 while(!converged) {
   
   iter <- iter + 1 # track how many iterations algo takes
   b_0 <- b_hat # b.hat will be updated
+  Sigma_0 <- Sigma_hat
   rss <- matrix(0, p, p) # initialize RSS matrix
   
   # find RSS
@@ -158,13 +166,12 @@ while(!converged) {
   }
   
   Sigma_hat <- rss/(n - ncol(X)) # RMSE matrix
-  Sigma_inv <- solve(Sigma_hat) # invert this now when it is (p x p) instead of (np x np)
+  Sigma_inv <- solve(Sigma_hat) # invert this now (more effecient computationally)
   Omega <- kronecker(diag(1, n, n), Sigma_inv) # diagonalize inverse of the RMSE
   
-  b_hat <- c( solve(t(X) %*% Omega %*% X) %*% t(X) %*% Omega %*% y_un ) # generalized least squares
+  b_hat <- c( solve(t(X) %*% Omega %*% X) %*% t(X) %*% Omega %*% y_un ) # gls estimate
   
-  if (max(abs(b_hat - b_0)) < tol) # check to see if we can break out of while loop
-    converged <- TRUE # sweet, sweet victory
+  if ( max(abs(b_hat - b_0)) < tol & max(abs(Sigma_hat - Sigma_0)) < tol ) # check convergence
   
   if (iter == max_iter) # prevents algorithm from running forever
     break
@@ -173,4 +180,6 @@ while(!converged) {
 
 converged # did the model converge?
 Sigma_hat # estimate of Sigma
+getVarCov(un_fit)
 b_hat # estimate of beta
+coef(un_fit)

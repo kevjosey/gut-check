@@ -1,6 +1,5 @@
 ###############################################
-## PURPOSE: Demonstration of Simulations for ##
-##          Linear Models                    ##
+## PURPOSE: Simulations for Linear Models    ##
 ## BY:      Kevin Josey                      ##
 ###############################################
 
@@ -21,8 +20,9 @@ n <- 10000
 exp_dist <- rexp(n, rate = 1/3)
 hist(exp_dist, main = "Exponential Distribution, lambda = 3")
 
+par(mfrow = c(1,3)) # 3 panel plots
+
 # Gamma
-par(mfrow = c(1,3))
 gamma_dist <- rgamma(n, shape = 20/2, rate = 1/2)
 hist(gamma_dist, main = "Gamma with Rate Parameter")
 gamma_dist_alt <- rgamma(n, shape = 20/2, scale = 2)
@@ -41,7 +41,7 @@ hist(norm_dist, main = "Normal Distribution")
 
 # Poisson
 pois_dist <- rpois(n, lambda = 4)
-table(pois_dist)
+hist(pois_dist, main = "Poisson Distribution")
 
 # Bernoulli
 bern_dist <- rbinom(n, size = 1, prob = 1/3)
@@ -55,13 +55,12 @@ U <- runif(n)
 # Exponential
 lambda <- 3
 Y <- -lambda*log(1-U)
-mean(Y) # lambda
-var(Y) # lambda^2
+mean(Y) # mean = lambda
+var(Y) # var = lambda^2
 
 # f(x) = 1/2 cos(x); F(X) = 1/2 sin(X) + 1/2; -pi/2 < X < pi/2
-
 X <- asin(2*U - 1)
-mean(X) # mu = 0
+mean(X) # mean = 0
 var(X) # var = 1/4*(pi^2-8)
 
 
@@ -95,11 +94,11 @@ summary(one_way_fit)
 C <- rbind(c(1, -1, 0),
            c(1, 0, -1)) # contrast matrix
 mu_hat <- solve(t(X) %*% X) %*% t(X) %*% y # OLS estimator
-rmse <- t(y - X %*% mu_hat) %*% (y - X %*% mu_hat) / (n - 3) # residual mse
+rmse <- t(y - X %*% mu_hat) %*% (y - X %*% mu_hat) / (n - 3) # residual MSE
 
 I <- diag(1, nrow = n, ncol = n)
 proj_mat <- X %*% solve(t(X) %*% X) %*% t(X) # projection matrix
-rmse_alt <- t(y) %*% (I - proj_mat) %*% y / (n - 3) # alternative rmse
+rmse_alt <- t(y) %*% (I - proj_mat) %*% y / (n - 3) # alternative RSME
 
 mu_0 <- c(1,1,1) # null hypothesis
 mu_var <- solve(t(X) %*% X) * as.vector(rmse) # variance of mu.hat
@@ -114,7 +113,7 @@ anova(lm(y ~ grp)) # check
 
 rm(list = ls())
 
-# Design Matrix (factor 1: 3 lvls, factor 2: 2 levels, balanced design)
+# Design Matrix (factor 1: 3 lvls, factor 2: 2 levels; balanced design)
 n1 <- 30
 n2 <- 30
 n3 <- 30
@@ -136,26 +135,6 @@ y <- X %*% beta + e
 two_way_fit <- lm(y ~ a1*a2)
 anova(two_way_fit)
 summary(two_way_fit)
-
-## ANCOVA
-
-# Design Matrix
-n1 <- 50
-n2 <- 50
-
-grp <- factor( rep(c(1,2), times = c(n1,n2)) )
-cv <- rnorm(n1 + n2, mean = 2, sd = 1)
-X <- model.matrix(~ grp + cv) # reference cell coding
-
-# Response
-e <- rnorm(nrow(X), sd = 2) # mse = 4
-beta <- c(10, 0.8, 0.1) 
-
-y <- X %*% beta + e
-
-# Fitting the Model
-ancova_fit <- lm(y ~ grp + cv)
-summary(ancova_fit)
 
 
 # Repeated Measures ANOVA ----------------------------------------------
@@ -193,7 +172,7 @@ E <- matrix(NA, nrow = n, ncol = p)
 for (i in 1:n) {
   
   E[i,] <- t(chol(V)) %*% rnorm(p, mean = 0, sd = 1)
-  # want L not U in LU Decomposition; use unit variance
+  # want L not U in LU Decomposition
   
 }
 
@@ -223,28 +202,10 @@ diag(V_tmp) <- 1
 V_hat <- V_tmp*cs_fit$sigma^2 # within subject variance estimate
 Sig_hat <- kronecker(diag(1, nrow = n, ncol = n), V_hat) # expand V
 
-wald_var <- solve(L %*% solve(t(X) %*% solve(Sig_hat) %*% X) %*% t(L)) # variance of theta.hat
+wald_var <- solve(L %*% solve(t(X) %*% solve(Sig_hat) %*% X) %*% t(L)) # variance of theta_hat
 wald_stat <- t(theta_hat - theta_0) %*% wald_var %*% (theta_hat - theta_0) / nu_1 # wald statistic
 
 pval <- pf(wald_stat, nu_1, nu_2, lower.tail = FALSE) # p-value
-
-
-# Linear Mixed Effects Model ----------------------------------------------
-
-# Using everything from before but fitting a random intercept model 
-# instead of a "compound symmetric pattern" model
-
-d <- rep(rnorm(n, 0, sqrt(1)), each = p)
-e <- rnorm(n*p, 0, sqrt(2)) 
-# Same ICC as the covariance pattern model,
-# errors are independent,
-# between cluster heterogeneity is expressed in the random effect
-
-y_n <- X %*% beta + d + e # Z_{ij} = 1 for all i,j
-
-# Fit Model
-rand_int_fit <- lmer(y_n ~ grp*time + (1|id)) # using lme4 package
-summary(rand_int_fit) # Same distribution as cs.fit response variable
 
 
 # Power and Sample Size ---------------------------------------------------
@@ -260,8 +221,6 @@ summary(rand_int_fit) # Same distribution as cs.fit response variable
 # (4) Proportion of samples that reject is the empirical power
 
 rm(list = ls())
-
-# One-Way ANOVA
 
 iter <- 10000 # no. of iterations
 n1 <- 15 # sample size group 1
@@ -308,17 +267,15 @@ segments(x0 = 2.5, y0 = -0.1, y1 = 0.8, lty = 3, col = "red", lwd = 2)
 ## Sample Size
 
 # Consider an equal allocation study (group sample sizes are equal)
-# Fix: effect parameters, nuisance parameters, covariates
-# Same procedure as sample size
+# Fix coefficients and nuisance parameters
+# Similar procedure as sample size with a few modifications
 
 rm(list = ls())
-
-# One-Way ANOVA
 
 iter <- 10000 # no. of iterations
 sd <- 3 # mse = 9
 try_n <- seq(5, 50, by = 5) # test different sample sizes
-beta <- c(1, 0, 2) # note this is our "effect size"
+beta <- c(1, 0, 2) # note this is our effect size
 
 out <- vector(mode = "numeric", length = length(try_n)) # initialize output
 
