@@ -10,11 +10,8 @@ ci <- matrix(NA, nrow = n.iter, ncol = 2)
 
 for (i in 1:n.iter) {
   
-  x <- rnorm(n, 0, 1)
-  z <- rnorm(m, -1, 1)
   w <- sample(1:100, n, replace = T, prob = (100:1)/100) #offset
   id <- sample(1:m, n, replace = TRUE)
-  zx <- z[id]
   alpha <- rnorm(m, -2, 1)
 
   y <- rbinom(n, size = w, exp(alpha[id])/(1 + exp(alpha[id])))
