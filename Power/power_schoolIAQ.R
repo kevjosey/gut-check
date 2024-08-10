@@ -7,7 +7,7 @@ library(dplyr)
 options(dplyr.summarise.inform = FALSE)
 
 # data dimensions
-n.seq <- seq(220, 800, by = 20) # number of schools
+n.seq <- seq(20, 1000, by = 20) # number of schools
 n.iter <- 1000 # number of simulations
 
 # parameters
@@ -69,7 +69,7 @@ out_list <- mclapply(n.seq, function(n, ...) {
   
   return(output) 
   
-}, mc.cores = 8)
+}, mc.cores = 30)
 
 output <- cbind(n = rep(n.seq, each = length(icc.seq)), do.call(rbind, out_list))
 
