@@ -7,7 +7,7 @@ library(dplyr)
 options(dplyr.summarise.inform = FALSE)
 
 # data dimensions
-n.seq <- seq(240, 600, by = 20) # number of schools
+n.seq <- seq(220, 800, by = 20) # number of schools
 n.iter <- 1000 # number of simulations
 
 # parameters
@@ -23,12 +23,7 @@ icc.seq <- sapply(sig2.seq, function(z, ...) {
 
 output <- data.frame()
 
-out_list <- mclapply(icc.seq, function(icc, ...) {
-  
-  sig2 <- sig2.seq[which.min(abs(icc.seq - icc))]
-  output <- data.frame()
-  
-  for (n in n.seq) {
+out_list <- mclapply(n.seq, function(n, ...) {
 
     school_id <- 1:n
     school_size <- sample(200:1000, size = n, replace = TRUE)
@@ -40,36 +35,42 @@ out_list <- mclapply(icc.seq, function(icc, ...) {
     dat$area <- factor(dat$area)
     
     beta <- c(qlogis(p0), qlogis(p1) - qlogis(p0), rnorm((2*(nlevels(dat$area) - 1)))) # random effects for site modeled as fixed effects
+    output <- data.frame()
     
-    test_gee <- sapply(1:n.iter, function(i, ...) {
-      
-      print(i)
-      
-      X <- model.matrix(~ treat*factor(area), data = dat)
-      alpha <- rnorm(n, 0, sqrt(sig2))
-      beta[3:(2*(nlevels(dat$area) - 1) + 2)] <- rnorm((2*(nlevels(dat$area) - 1)), 0, sd = 0.1)
-      mu <- plogis(alpha[dat$school] + c(X %*% beta))
-      dat$y <- rbinom(nrow(X), size = 1, prob = mu)
-      
-      dat_reduce <- dat %>% group_by(school, area, treat) %>% summarize(y = sum(y), size = n())
-      dat_reduce$ybar <- with(dat_reduce, y/size)
-      
-      fit <- glm(ybar ~ treat*area, family = quasipoisson(link = "log"), data = dat_reduce, weight = size)
-      
-      est <- coef(fit)[2]
-      se <- sqrt(vcovHC(fit)[2,2])
-      cut <- est + qnorm(0.95)*se
-      return(mean(cut < 0))
-      
-    })
+    for (icc in icc.seq) {
     
-    output <- rbind(output, data.frame(n = n, pwr = mean(test_gee))) # power
+      sig2 <- sig2.seq[which.min(abs(icc.seq - icc))]
+    
+      test_gee <- sapply(1:n.iter, function(i, ...) {
+        
+        print(i)
+        
+        X <- model.matrix(~ treat*factor(area), data = dat)
+        alpha <- rnorm(n, 0, sqrt(sig2))
+        beta[3:(2*(nlevels(dat$area) - 1) + 2)] <- rnorm((2*(nlevels(dat$area) - 1)), 0, sd = 0.1)
+        mu <- plogis(alpha[dat$school] + c(X %*% beta))
+        dat$y <- rbinom(nrow(X), size = 1, prob = mu)
+        
+        dat_reduce <- dat %>% group_by(school, area, treat) %>% summarize(y = sum(y), size = n())
+        dat_reduce$ybar <- with(dat_reduce, y/size)
+        
+        fit <- glm(ybar ~ treat*area, family = quasipoisson(link = "log"), data = dat_reduce, weight = size)
+        
+        est <- coef(fit)[2]
+        se <- sqrt(vcovHC(fit)[2,2])
+        cut <- est + qnorm(0.95)*se
+        return(mean(cut < 0))
+        
+      })
+    
+      output <- rbind(output, data.frame(icc = round(icc, 3), pwr = mean(test_gee))) # power
     
   } 
   
   return(output) 
   
-}, mc.cores = 23)
+}, mc.cores = 30)
 
+output <- cbind(icc = rep(n.seq, each = length(icc.seq)), do.call(rbind, out_list))
 
-output <- cbind(icc = rep(round(icc.seq, 3), each = length(n.seq)), do.call(rbind, out_list))
+write.csv(output, file = "~/Documents/breathe_power_results.csv")
