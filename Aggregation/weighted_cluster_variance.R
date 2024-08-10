@@ -16,19 +16,18 @@ for (i in 1:n.iter) {
 
   y <- rbinom(n, size = w, exp(alpha[id])/(1 + exp(alpha[id])))
   ybar <- y/w
-  data <- data.frame(id = id, ybar = ybar, m = m)
-  mu[i] <- weighted.mean(exp(alpha[id])/(1 + exp(alpha[id])), w = w)
   
+  mu[i] <- weighted.mean(exp(alpha[id])/(1 + exp(alpha[id])), w = w)
   tau[i] <- weighted.mean(ybar, w = w)
+  
   dat <- data.frame(id = id, ybar = ybar, w = w)
   
   tau.dat1 <- dat %>% group_by(id) %>% 
     summarise(diff = weighted.mean(ybar, w = w) - tau[i],
               w = sum(w))
+  
   tau.dat2 <- dat %>% group_by(id) %>% 
     mutate(diff = ybar - weighted.mean(ybar, w = w))
-  
-  # tau_var <- (sum(w^2*(ybar - tau[i])^2)/sum(w))/sum(w)
   
   tau_var <- with(tau.dat1, sum(w*(diff)^2)/sum(w))/(nrow(tau.dat1) - 1) +
     with(tau.dat2, sum(w*(diff)^2)/sum(w))/(nrow(tau.dat2) - nrow(tau.dat1))

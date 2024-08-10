@@ -1,4 +1,5 @@
 library(geepack)
+library(swdpwr)
 library(MASS)
 library(tidyr)
 
