@@ -14,7 +14,7 @@ n.iter <- 1000 # number of simulations
 p0 <- 0.2
 p1 <- 0.75*p0
 
-sig2.seq <- seq(0.1, 2.3, by = 0.1)
+sig2.seq <- seq(0.1, 1, by = 0.1)
 
 # calculate icc
 icc.seq <- sapply(sig2.seq, function(z, ...) {
@@ -45,7 +45,7 @@ out_list <- mclapply(n.seq, function(n, ...) {
         
         print(i)
         
-        X <- model.matrix(~ treat*factor(area), data = dat)
+        X <- model.matrix(~ treat*area, data = dat)
         alpha <- rnorm(n, 0, sqrt(sig2))
         beta[3:(2*(nlevels(dat$area) - 1) + 2)] <- rnorm((2*(nlevels(dat$area) - 1)), 0, sd = 0.1)
         mu <- plogis(alpha[dat$school] + c(X %*% beta))
@@ -54,7 +54,7 @@ out_list <- mclapply(n.seq, function(n, ...) {
         dat_reduce <- dat %>% group_by(school, area, treat) %>% summarize(y = sum(y), size = n())
         dat_reduce$ybar <- with(dat_reduce, y/size)
         
-        fit <- glm(ybar ~ treat*area, family = quasipoisson(link = "log"), data = dat_reduce, weight = size)
+        fit <- glm(ybar ~ treat, family = quasipoisson(link = "log"), data = dat_reduce, weight = size)
         
         est <- coef(fit)[2]
         se <- sqrt(vcovHC(fit)[2,2])
@@ -69,8 +69,8 @@ out_list <- mclapply(n.seq, function(n, ...) {
   
   return(output) 
   
-}, mc.cores = 30)
+}, mc.cores = 8)
 
-output <- cbind(icc = rep(n.seq, each = length(icc.seq)), do.call(rbind, out_list))
+output <- cbind(n = rep(n.seq, each = length(icc.seq)), do.call(rbind, out_list))
 
 write.csv(output, file = "~/Documents/breathe_power_results.csv")
