@@ -14,10 +14,11 @@ n.iter <- 1000 # number of simulations
 p0 <- 0.2
 p1 <- 0.75*p0
 
-sig2.seq <- seq(0.1, 1, by = 0.1)
+sig2.seq <- seq(0.01, 1, by = 0.01)
 
 # calculate icc
-icc.seq <- sapply(sig2.seq, function(z, ...) {
+icc.seq <- c(0, 0.05, 0.1, 0.15, 0.2)
+icc.seq.all <- sapply(sig2.seq, function(z, ...) {
   BinICC(link = "logit", meanresponse_start = p0, tau2 = z)$ICC
 })
 
@@ -39,7 +40,7 @@ out_list <- mclapply(n.seq, function(n, ...) {
     
     for (icc in icc.seq) {
     
-      sig2 <- sig2.seq[which.min(abs(icc.seq - icc))]
+      sig2 <- sig2.seq[which.min(abs(icc.seq.all - icc))]
     
       test_gee <- sapply(1:n.iter, function(i, ...) {
         
