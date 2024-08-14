@@ -7,22 +7,21 @@ library(dplyr)
 options(dplyr.summarise.inform = FALSE)
 
 # data dimensions
-n.seq <- seq(20, 1000, by = 20) # number of schools
+n.seq <- seq(24, 504, by = 12) # number of schools
 n.iter <- 1000 # number of simulations
 
 # parameters
-p0 <- 0.2
+p0 <- 1.6
 p1 <- 0.75*p0
+p0_fall <- 1.2
 
 sig2.seq <- seq(0.01, 1, by = 0.01)
 
 # calculate icc
 icc.seq <- c(0, 0.05, 0.1, 0.15, 0.2)
 icc.seq.all <- sapply(sig2.seq, function(z, ...) {
-  BinICC(link = "logit", meanresponse_start = p0, tau2 = z)$ICC
+  iccCounts:::r_Pois(log(p1), log(sqrt(z)))
 })
-
-output <- data.frame()
 
 out_list <- mclapply(n.seq, function(n, ...) {
 
@@ -35,7 +34,7 @@ out_list <- mclapply(n.seq, function(n, ...) {
     dat <- dat_id[rep(school_id, times = school_size),]
     dat$area <- factor(dat$area)
     
-    beta <- c(qlogis(p0), qlogis(p1) - qlogis(p0), rnorm((2*(nlevels(dat$area) - 1)))) # random effects for site modeled as fixed effects
+    beta <- c(log(p0), log(p1) - log(p0), rnorm((2*(nlevels(dat$area) - 1)))) # random effects for site modeled as fixed effects
     output <- data.frame()
     
     for (icc in icc.seq) {
@@ -49,8 +48,8 @@ out_list <- mclapply(n.seq, function(n, ...) {
         X <- model.matrix(~ treat*area, data = dat)
         alpha <- rnorm(n, 0, sqrt(sig2))
         beta[3:(2*(nlevels(dat$area) - 1) + 2)] <- rnorm((2*(nlevels(dat$area) - 1)), 0, sd = 0.1)
-        mu <- plogis(alpha[dat$school] + c(X %*% beta))
-        dat$y <- rbinom(nrow(X), size = 1, prob = mu)
+        mu <- exp(alpha[dat$school] + c(X %*% beta))
+        dat$y <- rpois(nrow(X), lambda = mu)
         
         dat_reduce <- dat %>% group_by(school, area, treat) %>% summarize(y = sum(y), size = n())
         dat_reduce$ybar <- with(dat_reduce, y/size)
