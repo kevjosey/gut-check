@@ -1,26 +1,20 @@
 library(clusterPower)
 library(swdpwr)
-library(interactionR)
 library(geepack)
 library(dplyr)
 
 # data dimensions
-n <- 120 # number of subjects
-m <- 5 # number of repeated measurements (unequal spacing)
+n <- 3000
+m <- 500 # number of PCP Providers
+l <- 5 # number of sites
 n.iter <- 1000 # number of simulations
 
 # data
 pcp_id <- 1:m # PCP ID variable
 site_id <- factor(sample(1:l, size = m, replace = T)) # Random Site Allocation
-therapy <- rep(c(0,1), times = c(n/2, n/2)) # treatment
-
-
-pcp0 <- sample(pcp_id[1:(m/2)], size = n/2, replace = T)
-pcp1 <- sample(pcp_id[(m/2 + 1):m], size = n/2, replace = T)
-pcp <- c(pcp0, pcp1)
-pcp <- pcp[order(pcp)]
-site <- factor(rep(site_id, times = table(pcp)))
-
+site <- factor(rep(site_id, each = n/m))
+treat <- rep(c(0,1), times = c(2*n/3, n/3)) # treatment
+pcp <- factor(rep(pcp_id, each = n/m))
 covars <- data.frame(pcp = pcp, treat = treat, site = site)
 
 # parameters
@@ -28,7 +22,7 @@ p0 <- 0.25
 p1 <- 0.31
 icc <- 0.0
 
-beta <- c(log(p0/(1 - p0)), 0,
+beta <- c(qlogis(p0), qlogis(p1) - qlogis(p0),
           rnorm(l - 1, 0, 0.5)) # random effects for site modeled as fixed effects
 
 sig2_seq <- seq(0.1, 2, by = 0.05)
@@ -64,5 +58,3 @@ for (i in 1:n.iter) {
 }
 
 mean(test_gee) # power
-
-## with longpower.R
